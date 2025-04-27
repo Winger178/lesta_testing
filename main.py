@@ -1,10 +1,14 @@
 from flask import Flask, request, render_template, flash, url_for
+
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "N1F2F9DCidfqrf100"
+
+
+
 
 
 def process_text(text):
@@ -31,6 +35,7 @@ def process_text(text):
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
+
         if 'file' in request.files:
             file = request.files['file']
 
@@ -72,6 +77,7 @@ def index():
     else:
         return render_template('index.html')
 
+#чисто заглушка для ловли вских ошибок
 @app.route("/all_errors", methods=['GET'])
 def all_errors():
     return render_template('all_errors.html')
