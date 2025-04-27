@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, flash, url_for
+from flask import Flask, request, render_template, flash, url_for, redirect
 
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
@@ -59,7 +59,7 @@ def index():
                         return render_template('index.html', tfidf_data=df_to_html)
 
                     except:
-                        return render_template(url_for('all_errors'))
+                        pass #сюда лучше воткнуть обработку db соединения, если мы хотим реализовать историю обработок док-ов
                 else:
                     print('Выбран файл неправильного формата(')
                     flash('Обработать возможно только .txt файл!!')
@@ -77,10 +77,19 @@ def index():
     else:
         return render_template('index.html')
 
-#чисто заглушка для ловли вских ошибок
-@app.route("/all_errors", methods=['GET'])
-def all_errors():
-    return render_template('all_errors.html')
+#чисто заглушки для ловли вских ошибок
+@app.route("/all_errors/<int:error_code>")
+def all_errors(error_code):
+    return render_template('all_errors.html', error_data=error_code)
+
+@app.after_request
+def redirect_to_start(response):
+    #можно для каждоцй ошибки добавить еще текст, из-за чего она произошла
+    if response.status_code >= 400:
+        print(response.status_code)
+        return redirect(url_for('all_errors', error_code=response.status_code))
+    return response
+
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
