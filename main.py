@@ -1,9 +1,11 @@
-from flask import Flask, request, render_template, flash
+from flask import Flask, request, render_template, flash, url_for
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = "N1F2F9DCidfqrf100"
+
 
 def process_text(text):
     documents = text.split('\n\n')
@@ -25,49 +27,54 @@ def process_text(text):
     return feature_names, tf, idf
 
 
-@app.route('/')
-def index():
-    return render_template('index.html')
-
 
 @app.route('/', methods=['GET', 'POST'])
-def upload_file():
+def index():
     if request.method == 'POST':
-        if 'file' not in request.files:
+        if 'file' in request.files:
+            file = request.files['file']
+
+            if file.filename != '':
+
+                if file and file.filename.endswith('.txt'):
+                    content = file.read().decode('utf-8')
+                    feature_names, tf, idf = process_text(content)
+
+                    df = pd.DataFrame({
+                        'слово': feature_names,
+                        'tf': tf,
+                        'idf': idf
+                    })
+
+
+                    result = df.sort_values(by='idf', ascending=False).head(50)
+                    df_to_html = result.to_html(classes='table table-striped', index=False)
+                    try:
+
+                        return render_template('index.html', tfidf_data=df_to_html)
+
+                    except:
+                        return render_template(url_for('all_errors'))
+                else:
+                    print('Выбран файл неправильного формата(')
+                    flash('Обработать возможно только .txt файл!!')
+            else:
+                print('Не выбрали файл(')
+                flash("Вы не выбрали файл!")
+        else:
             print('Не прогрузился файл(')
+            flash('Файл не прогрузился!!')
 
+        #этот ретерн для ловли флеш-сообщений
+        return render_template('index.html')
 
-
-        file = request.files['file']
-
-        if file.filename == '':
-            print('Не выбрали файл(')
-
-
-        if file and file.filename.endswith('.txt'):
-            content = file.read().decode('utf-8')
-            feature_names, tf, idf = process_text(content)
-
-            df = pd.DataFrame({
-                'слово': feature_names,
-                'tf': tf,
-                'idf': idf
-            })
-
-
-            result = df.sort_values(by='idf', ascending=False).head(50)
-            df_to_html = result.to_html(classes='table table-striped', index=False)
-            try:
-
-                return render_template('index.html', tfidf_data=df_to_html)
-
-            except:
-                return render_template('error_db.html')
-        return render_template('all_errors.html')
-
+    #этот ретерн для GET-запроса
     else:
         return render_template('index.html')
 
+@app.route("/all_errors", methods=['GET'])
+def all_errors():
+    return render_template('all_errors.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
